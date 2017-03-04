@@ -19,33 +19,31 @@ func init() {
 
 func main() {
 
-	current_date := util.GetCurrentDate()
-	sqlfilename := current_date + ".sql"
-	zipfilename := current_date + ".7z"
+	currentDate := util.GetCurrentDate()
+	sqlFilename := currentDate + ".sql"
+	zipFilename := currentDate + ".7z"
 
-	stdin_name := "-si" + sqlfilename
+	stdinName := "-si" + sqlFilename
 
-	cmd_dump := exec.Command("mysqldump.exe", "-hxx.abc.com", "-uuser", "-ppasswd", "dbname")
-	cmd_7z := exec.Command("7z.exe", "-ppasswd", "-mhe", "-r", stdin_name, "a", zipfilename, sqlfilename)
+	cmdDump := exec.Command("mysqldump.exe", "-hxx.abc.com", "-uuser", "-ppasswd", "dbname")
+	cmdZip := exec.Command("7z.exe", "-ppasswd", "-mhe", "-r", stdinName, "a", zipFilename)
 
-	pipe, err := cmd_7z.StdinPipe()
+	pipe, err := cmdZip.StdinPipe()
 
 	if err != nil {
 		log.Fatal("cmd pipe error, ", err)
 	}
-	cmd_dump.Stdout = pipe
+	cmdDump.Stdout = pipe
 
-	if err = cmd_dump.Start(); err != nil {
+	if err = cmdDump.Start(); err != nil {
 		log.Fatal("cmd dump error, ", err)
 	}
 
-	if err = cmd_7z.Start(); err != nil {
+	if err = cmdZip.Start(); err != nil {
 		log.Fatal("cmd zip error, ", err)
 	}
 
-	cmd_dump.Wait()
+	cmdDump.Wait()
 
 	log.Println("dump sucess")
-
-	os.Remove(sqlfilename)
 }

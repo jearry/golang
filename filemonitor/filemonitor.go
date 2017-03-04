@@ -12,11 +12,13 @@ import (
 	"xd5d.com/util"
 )
 
+//FileModifyDef
 type FileModifyDef struct {
 	FileName string
 	Op       string
 }
 
+//ModifyDef
 type ModifyDef struct {
 	TotalCount int
 	Files      []FileModifyDef
@@ -39,7 +41,7 @@ func init() {
 	runtime.SetFinalizer(WatcherObj, (*fsnotify.Watcher).Close)
 }
 
-func checkAddFileName(name string, op string, check_dir bool) {
+func checkAddFileName(name string, op string, checkDir bool) {
 	ext := filepath.Ext(name)
 	found := false
 	for _, t := range StaticFileType {
@@ -49,7 +51,7 @@ func checkAddFileName(name string, op string, check_dir bool) {
 		}
 	}
 
-	if check_dir {
+	if checkDir {
 		if util.IsDir(name) {
 			found = true
 		}
@@ -126,7 +128,7 @@ func addWatcher(dir string) error {
 }
 
 func fileMonitorLoop() {
-	timer_mail := time.NewTicker(time.Duration(MainCfg.IntervalTime) * time.Second)
+	timerMail := time.NewTicker(time.Duration(MainCfg.IntervalTime) * time.Second)
 
 	for {
 		select {
@@ -166,7 +168,7 @@ func fileMonitorLoop() {
 			}
 		case err := <-WatcherObj.Errors:
 			log.Println("event error:", err)
-		case <-timer_mail.C:
+		case <-timerMail.C:
 			if len(ChangeFiles) > 0 {
 
 				sendAlarmMail(ChangeFiles)
