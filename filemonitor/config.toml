@@ -1,0 +1,4 @@
+LogFile = "fm.log"
+IntervalTime = 1
+InlcudeDir = ["/data/www", "E:\\GoPath\\src\\filemonitor"]
+ExcludeDir = ["/data/www/Apps/Runtime", "/data/www/Public/uploads"]
