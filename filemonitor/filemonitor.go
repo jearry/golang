@@ -1,3 +1,6 @@
+// Monitor code file on the Web server
+// when there are changes, automatic send alert email
+
 package main
 
 import (

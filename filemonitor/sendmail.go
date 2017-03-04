@@ -54,10 +54,10 @@ func sendMail(user, password, host, to, subject, body, mailtype string) error {
 }
 
 func sendAlarmMail(files []FileModifyDef) {
-	user := "jearry@163.com"
-	password := "tpr61mfk163"
+	user := "username@163.com"
+	password := "passwd"
 	host := "smtp.163.com:25"
-	to := "jearry@163.com"
+	to := "username@163.com"
 
 	subject := "服务器文件改动告警"
 

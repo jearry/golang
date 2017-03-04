@@ -1,3 +1,6 @@
+// Backup database
+// Avoid directly enter your user name and password in scripts
+
 package main
 
 import (
