@@ -3,6 +3,7 @@ package main
 import (
 	"os/exec"
 	"os"
+
 )
 
 func main() {
@@ -20,6 +21,5 @@ func main() {
 
 	pscmd.Wait()
 
-	//不会退出
-	//grepcmd.Wait()
+
 }

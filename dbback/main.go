@@ -11,6 +11,15 @@ import (
 	"github.com/jearry/golang/util"
 )
 
+var (
+	dbUser     = "user"
+	dbPasspwd  = "passwd"
+	dbHost     = "db.host.com"
+	dbDatabase = "dbname"
+
+	zipPasswd = "passwdasdf%^&"
+)
+
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 
@@ -27,9 +36,14 @@ func main() {
 	zipFilename := currentDate + ".7z"
 
 	stdinName := "-si" + sqlFilename
+	argHost := "-h" + dbHost
+	argUser := "-u" + dbUser
+	argPass := "-p" + dbPasspwd
 
-	cmdDump := exec.Command("mysqldump.exe", "-hxx.abc.com", "-uuser", "-ppasswd", "dbname")
-	cmdZip := exec.Command("7z.exe", "-ppasswd", "-mhe", "-r", stdinName, "a", zipFilename)
+	cmdDump := exec.Command("mysqldump.exe", argHost, argUser, argPass, dbDatabase)
+
+	argZipPwd := "-p" + zipPasswd
+	cmdZip := exec.Command("7z.exe", argZipPwd, "-mhe", "-r", stdinName, "a", zipFilename)
 
 	pipe, err := cmdZip.StdinPipe()
 
