@@ -71,23 +71,35 @@ export PATH=$PATH:$GOROOT/bin
 
 ### 基础
 * 关键字
-
-    break default func interface select case defer go map 
-    struct chan else goto package switch const fallthrough if 
-    range type contiue for import return const var
-
+    ```
+    package import func interface struct map
+    switch type case default fallthrough 
+    if else for range break contiue goto return   
+    chan select go defer const var
+    ```
 * 预定义标识符
 
-    * 内建常量: true false iota nil
+    * 内建常量: 
+    
+        ```
+        true false iota nil
+        ```
 
-    * 内建类型: int int8 int16 int32 int64
-            uint uint8 uint16 uint32 uint64 uintptr
-            float32 float64 complex128 complex64
-            bool byte rune string error
+    * 内建类型: 
+        
+        ```
+        int int8 int16 int32 int64
+        uint uint8 uint16 uint32 uint64 uintptr
+        float32 float64 complex128 complex64
+        bool byte rune string error
+        ```
 
-    * 内建函数: make len cap new append copy close delete
-            complex real imag
-            panic recover
+    * 内建函数: 
+        ```
+        make len cap new append copy close delete
+        complex real imag
+        panic recover
+        ```
 
 * 常量、变量
 ```
