@@ -96,7 +96,7 @@ export PATH=$PATH:$GOROOT/bin
 
     * 内建函数: 
         ```
-        make len cap new append copy close delete
+        make len cap new delete append copy close 
         complex real imag
         panic recover
         ```
@@ -112,12 +112,12 @@ const(
 
 * 不支持隐式类型转换，不同类型必须显式类型转换
 
-    type(value)
+    `type(value)`
 
 * 大数值类型
 
-    * big.Int 
-    * big.Rat
+    * `big.Int`
+    * `big.Rat`
 
 * 不支持操作符重载
 
@@ -182,6 +182,232 @@ map[KeyType]ValueType{k1: v1, k2: v2..., kn: vn}
 * struct 可以作为map的key，只要它的成员都支持==和!=运算即可
 
 ## 五、过程式编程
+
+* 类型断言
+    ```
+    if v, ok := x.(Type); ok {
+
+    }
+    ```
+* switch
+    ```
+    switch Suffix(file) {
+    case ".gz":
+        return GzipFileList(file)
+    case ".tar", "tar.gz", ".tgz":
+        return TarFileList(file)
+    case ".zip":
+        return ZipFileList(file)
+    }
+    ```
+* 类型开关
+    ```
+    switch x.(type){
+    case bool:
+        fmt.Printf("bool\n")
+    case float64:
+        fmt.Printf("float64\n")
+    }
+    ```
+* for
+    ```
+    //1
+    for{
+        ...
+    }
+    //2
+    for boolexp{
+        ...
+    }
+    //3
+    for pre; boolexp; postexp {
+        ...
+    }
+    //4
+    for index, char := range s{
+        ...
+    }
+    //5
+    for index := range s{
+        ...
+    }
+    //6
+    for key, value := range a_map{
+        ...
+    }
+    //7
+    for key := range a_map{
+        ...
+    }
+    //8
+    for item := range a_chan{
+        ...
+    }
+    ```
+
+* 通信和并发
+    * goroutine创建方式：
+        * `go function(arg)`
+        * `go func(param){...}(arg)`
+
+    * 通道创建方式：
+        * `make(chan Type)`
+        * `make(chan Type, cap)`
+
+    * 发送
+
+        `channel <- value`
+
+    * 接收
+
+        ```
+        <- channel //接收并丢弃
+        value := <- channel //接收并保存
+        value, ok := <- channel //接收并保存，同时检查通道是否关闭或者是否为空
+        ```
+* select语句
+    ```
+    select {
+    case send_or_recv: block1
+    ...
+    case send_or_recvN: blockn
+    default: block_d
+    }
+    ```
+    * 没带default语句的是阻塞的
+    * 带default语句的是非阻塞的
+
+* defer语句
+    ```
+    if file, err := os.Open(filename); err != nil {
+        log.Println("file open err", err)
+        return
+    }
+    defer file.Close()
+    ```
+    * 多defer语句时按LIFO（后进先出）方式执行
+
+* panic、recover函数
+    * error指可能出错的东西
+    * panic指不可能发生的事情
+    * 绝大多数情况，go语言标准库使用error而非异常
+    * 如果使用panic()，需要避免panic跨越package的边界，可以使用recover()来捕捉异常并且返回一个error
+    * panic to error
+    ```
+    func IntFromInt64(x int64) (i int, err error){
+        defer func(){
+            if e := recover(); e != nil{
+                err = fmt.Errorf("%v", e)
+            }
+        }()
+        i = ConvertInt64ToInt(x)
+        return i, nil
+    }
+    ```
+    * log panic wrapper
+    ```
+    func logPanic(function func(http.ResponseWriter, *http.Request))
+        func(http.ResponseWriter, *http.Request){
+        return func(write http.ResponseWriter, request *http.Request){
+            defer func(){
+                if (x := recover(); x != nil){
+                    log.Printf("[%v] caugth panic: %v", request.RemoteAddr, x)
+                }
+            }()
+            function(writer, request)
+        }
+    }
+    ```
+* 可变参数函数
+    ```
+    func MinimumInt(first int, rest...int){
+        for _, x := range rest{
+            if x < first{
+                first = x
+            }
+        }
+        return first
+    }
+    ```
+    * `arg... Type` 多参数变切片
+    * `slice...` 切片变多个参数
+
+* 可选参数
+    ```
+    type Options struct{
+        First int
+        Last  int
+        Audit bool
+        ErrorHandle func(item Item)
+    }
+    //default arg
+    ProcessItems(items, Options{})
+    //assign some arg
+    errorHandle := func(item Item){ log.Println("Invalid:", item)}
+    ProcessItems(items, Options{Audit: true, ErrorHandle: errorHandle})
+    ```
+* init,main函数
+    * 包被引入多次，init函数也只执行一次
+
+* 闭包函数
+    * 捕获了和它同一作用域的其他常量和变量，只要闭包还在使用，变量还会存在
+    * 所有匿名函数都是闭包
+
+* 递归函数
+    * 一个跳出条件
+    * 一个递归体
+
+* 使用map代替if、switch分支
+    ```
+    var FunctionForSuffix = map[string] func(string)([]string, error){
+        ".gz": GzipFileList,
+        ".tar": TarFileList,
+        ".tar.gz": TarFileList,
+        ".tgz": TarFileList,
+        ".zip": ZipFileList
+    }
+    func ArchiveFileListMap(file string)([]string, error){
+        if function, ok := FunctionForSuffix[Suffix(file)]; ok {
+            return function(file)
+        }
+        return nil, errors.New("unrecognized archive")
+    }
+    ```
+    * 50个以上分支，使用map速度会超过switch
+
+* 纯记忆函数
+    * 纯函数：对同一组输入总是产生同样的输出，不存在副作用
+    * 记忆技术：保存当前计算结果，下次直接获取
+    ```
+    type memFunction func(int, ...int) interace{}
+    var Fibonacci memFunction
+    func init(){
+        Fibonacci = Memoize(func(x int, xs...int) interface{}{
+            if x < 2{
+                return x
+            }
+            return Fibonacci(x -1).(int) + Fibonacci(x-2).(int)
+        }
+    }
+
+    func Memoize(function memFunction) memFunction {
+        cache := make(map[string]interface{})
+        return func(x int, xs...int) interface{}{
+            key:= fmt.Sprint(x)
+            for _, i := range(xs){
+                key += fmt.Sprintf(",%d", i)
+            }
+
+            if value, ok := cache[key]; ok{
+                return value
+            }
+            value :=function(x, xs...)
+            cache[key] = value
+            return value
+        }
+    }
+    ```
+
 
 ## 六、面向对象编程
 
