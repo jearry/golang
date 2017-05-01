@@ -35,22 +35,13 @@
     ```
 * 极度简化但完备的面向对象方法
 
-    废弃了大量OOP特性：等
+    废弃了大量OOP特性，只保留组合和嵌入方式
 
 * 标准化的错误处理规范
 
     * 内置error
     * defer语句编写异常安全代码
 
-* 功能内聚
-
-    匿名组合完成继承
-    ```
-    type Foo struct {
-        *Base
-        ...
-    }
-    ```
 * 适合云计算
     * 性能大幅领先python、ruby、php等脚本语言，接近C、C++
     * 腾讯、阿里、京东、360、网易、新浪、金山、豆瓣等都有团队对go做服务端开发进行实践
@@ -412,9 +403,341 @@ map[KeyType]ValueType{k1: v1, k2: v2..., kn: vn}
 
 
 ## 六、面向对象编程
+* 只支持组合和嵌入
+* 使用类型和值，自定义的值可以包含方法
+* 接口、值、方法都相互保持独立
+* 鸭子类型
+```
+
+type Writer interface {
+    Write(p []byte)(n int, err error)
+}
+
+type ZipWriter struct{
+    ...
+}
+
+func (writer * ZipWrite) Write(p []byte)(n int, err error){
+    ...
+}
+
+Writer w = ZipWriter{}
+
+
+
+```
+
+* 自定义类型
+    * 基于内置类型的自定义类型与内置类型的转换在编译时完成
+    ```
+    type Count int
+    func (c *Count)Increment(){ *count ++}
+
+    ```
+    * 方法表达式
+    ```
+    type Part struct{
+        Id int
+        Name string
+    }
+    func (part Part) String() string{
+        return fmt.Printf("<<%d %q>>", part.Id, part.Name)
+    }
+    ...
+    stringFunc := (* Part).String
+    sv := stringFunc(&part)
+    ```
+* 接口习惯以er结尾
+* 接口的嵌入
+```
+type LowerCaser interface{
+    LowerCase()
+}
+type UpperCaser interface{
+    UpperCase()
+}
+type LowerUpperCaser interface{
+    LowerCaser
+    UpperCaser
+}
+```
+* 为接口添加方法，建议创建一个新的接口，嵌套老接口在里面，同时包含新老方法（升级）
 
 ## 七、并发编程
 
+* sync／atomic 原子操作
+* sync.Once 执行一次性调用
+* sync.WaitGroup 上层同步机制，Add、Done、Wait：等待Done调用次数和Add一致
+* 4
+    * 使用互斥
+    * 设定规则，发送后不再访问，由接受者释放
+    * 所有外部方法都不修改值，内部实现goroutine修改值，修改函数不导出
+* 只有在后面需要检查通道是否关闭（用到`for...rang, select, <-`）才需要显式关闭通道
+* 发送端关闭 chan
+* 并发常见的3种模式：管道、独立并发任务、相互依赖的并发任务
+* `chan <- Type` 只允许发送的通道
+* `<- chan Type` 只允许接受的通道
+
 ## 八、文件处理
 
+* 处理Json文件
+    * 使用encoding/json包
+    * 需要定义转换结构体，用于处理包含类似time.Time类型的结构体
+    * 写json文件
+    ```
+    type JSONMarshaler struct{}
+    func (JSONMarshaler) MarshalInvoices(writer io.Writer, invoices []*Invoice) error {
+        encoder := json.NewEncoder(writer)
+        //json.Encode()会检查值是否支持json.MarshalJSON接口，如果支持，会自动调用该值的MarshalJSON方法而非内置的编码代码
+        if error := encoder.Encode(fileType); error != nil{
+            return err
+        }
+        ...
+    }
+    ```
+    * 读json文件
+    ```
+    func (JSONMarshaler) UnMarshalInvoices(reader io.Reader)([]*Invoie, error){
+        decoder := json.NewDecoder(reader)
+        var kind string
+        //json.Decode()会检查值是否支持json.UnmarshalJSON接口，如果支持，会自动调用该值的UnmarshalJSON方法
+        if err := decoder.Decode(&king); err != nil{
+            return nil, err
+        }
+        ...
+    }
+    ```
+    * json.Encoder.Encode函数与json.Decoder.Decode函数不是完美可逆
+
+* 处理XML文件
+    * 适用encoding/xml包
+    * 要求结构体字段包含格式合理的标签（encoding／json不需要）
+        * 结构体的标签本质没有任何语义，它们只是可以通过反射接口获得的字符串
+    * 一般也需要定义转换结构体（带标签）
+    * 写xml文件
+    ```
+    type XMLInvoies struct{
+        //
+        XMLName xml.Name `xml:"INVOICES"`
+        Version int `xml:"version,attr"`
+        Invoice []*XMLInvoice `xml:"INVOICE"`
+    }
+    type XMLInvoice struct {
+        XMLName xml.name `xml:"INVOICE"`
+        Id int `xml:",atrr"`
+        CustomerId int `xml:",attr"`
+        ...
+    }
+    ```
+
+* 处理文本文件
+    * 使用fmt包
+    * fmt.Fprintf
+    * fmt.Sscanf
+
+* 处理gob二进制文件
+    * gob格式是一个自描述的二进制序列
+    * 使用encoding/gob包
+
+* 处理自定义二进制文件
+    * 使用encoding／binary包
+    * 读写二进制数据时其字节序必须一致
+    * 随机访问必须使用os.OpenFile函数打开文件（而非os.Open）
+
+* 处理zip归档文件
+    * 使用archive/zip包
+    * 创建zip归档文件
+    ```
+    file := os.Create(zipfilename)
+    zipper := zip.NewWriter(file)
+
+    //loop process input file...
+    inputfile := os.Open(inputfilename)
+    info := inputfile.Stat()
+    header := zip.FileInfoHeader(info)
+    writer := zipper.CreateHeader(header)
+    io.Copy(writer, inputfile)
+    ```
+    * 解开zip归档文件
+    ```
+    reader := zip.OpenReader(filename)
+    defer reader.Close()
+    for _, zipFile := range reader.Reader.File{
+        name := sanitizedName(zipFile.Name)
+        mode := zipFile.Mode()
+        if mode.IsDir(){
+            os.MkDirAll(name, 0755)
+        }else{
+            unpackZippedFile(name, zipFile)
+        }
+    }
+    func unpackZippedFile(filename string, zipFile *zipFile) error{
+        writer := os.Create(filename)
+        reader := zipFile.Open()
+        io.Copy(writer, reader)
+    }
+    ```
+
+* 处理压缩的tar包
+    * 使用archive／tar、archive／gzip
+    * 创建压缩tar包
+    ```
+    file := os.Create(filename)
+    fileWriter := gzip.NewWriter(file)
+    writer := tar.NewWriter(fileWriter)
+    
+    //loop process input file
+    inputfile := os.Open(inputfilename)
+    stat := file.Stat()
+    header := &tar.Header{
+        //净化文件名
+        Name: sanitizedName(filename),
+        MOde: int64(stat.Mode()),
+        Uid: os.Getuid(),
+        Gid: os.Getuid(),
+        Size: stat.Size(),
+        ModTime: stat.ModTime(),
+    }
+    writer.WriteHeader(header)
+    io.Copy(writer, file)
+    ```
+    * 解开压缩tar包
+    ```
+    file := os.Open(filename)
+    fileReader := gzip.NewReader(file)
+    reader := tar.NewReader(fileReader)
+    unpackTarFiles(reader)
+
+    func unpackTarFiles(reader *tar.Reader) error{
+        for {
+            header, err := reader.Next()
+            if err != nil {
+                if err == io.EOF {
+                    return nil
+                }
+                return err
+            }
+            filename := sanitizedName(header.Name)
+            switch header.Typeflag{
+            case tar.TypeDir:
+                os.MkdirAll(filename, 0755)
+            case tar.TypeReq:
+                unpackTarFile(file, header.Name, reader)
+            }
+        }
+    }
+
+    func unpackTarFile(filename, tarFilename string, reader *tar.Reader) error{
+        writer := os.Create(filename)
+        io.Copy(writer, reader)
+    }
+    ```
+
 ## 九、包
+
+* 自定义包
+    * 包可以分隔成多个文件保存，只需将这些文件存放在同一个目录
+    * 如果希望包能够被其他应用程序共享，那就应该放在GOPATH／src目录下
+    * 平台特定代码
+        * 判断runtime.GOOS：windows、linux、darwin、freebsd
+        * 文件名后缀：例入util_windows.go util_linux.go util_darwin.go util_freebsd.go
+    * 文档化相关包
+        * 默认只有可导出类型、类、常量、变量才会在godoc出现，因此全部这些内容都应该添加合适的注释
+        * 可导出类型的注释必须紧接在类型声明之前，而且必须总是描述该类型的0值是否有效
+        * 注释通常以被注释内容的名字开头，这是一个惯例
+    * 包的单元测试和基准测试
+        * 单元测试文件名格式为 包名_test.go
+            * 黑盒测试：单独的测试包，导入被测试包
+            * 白盒测试：测试文件放包文件目录下，不需要倒入被测试包，可以为方便测试而增加新的方法
+        * 单元测试文件没有main函数，取而代之是一写以Test开头的函数，带一个常数，没有返回值
+        ```
+        func TestStringKeyOMapInsertion(t *testing.T){
+            ...
+        }
+        ```
+        * 基准测试以Benchmark开头
+            * 默认不会执行基准测试
+            * 需要指定 -test.bench=.* (正则)
+            * -test.benchtime选项可以指定基准测试的执行时间
+        
+* 导入包
+    * 别名用于切换版本： 
+    ```
+    import bio "bio_v1"
+    import bio "bio_v2"
+    ```
+    * 避免未使用的警告
+    ```
+    import _ "image/gif"
+    import _ "image/jpeg"
+    import _ "image/png"
+    ```
+
+* go命令行弓弩
+    * 帮助：`go help`
+    * 升级包：`go fix`
+    * 工具包：`go tool`
+    * 格式化代码： `gofmt`
+
+* 标准库
+    * 实验性质包
+        * exp：除非参与标准库的开发，否则不要使用
+
+    * 归档和压缩
+        * archive/tar
+        * archive/zip
+        * compress/gzip
+        * compress／bzip2
+        * compress/lzw
+
+    * 字节流和字符串
+        * bytes、strings
+        * strconv
+        * fmt
+        * unicode、unicode／utf8、unicode／utf16
+        * text/template、html/template
+
+    * 容器包
+        * container/heap
+        * container/list
+        * container/ring
+        * database/sql
+
+    * 文件和操作系统相关
+        * os
+        * bufio
+        * io
+        * ioutil
+        * path、path/filepath
+        * runtime
+
+    * 文件格式
+        * gob
+        * csv
+        * encoding、encoding/json、encoding/xml、encoding/binary、encoding/base64
+
+    * 图像处理
+        * image、image/png、image／jpeg、image/draw
+        * freetype、freetype／raster
+
+    * 数学处理
+        * math
+        * math/big
+        * math/cmplx
+        * math／rand
+
+    * 网络
+        * net
+        * net/http、net／url、net/rpc、net/smtp
+
+    * 反射包
+        * reflect
+
+    * 其他
+        * cypto、cypto/sha512、cypto/aes、cypto/des
+        * exec
+        * flag
+        * log
+        * regexp
+        * sort
+        * time
