@@ -468,7 +468,7 @@ type LowerUpperCaser interface{
 * sync／atomic 原子操作
 * sync.Once 执行一次性调用
 * sync.WaitGroup 上层同步机制，Add、Done、Wait：等待Done调用次数和Add一致
-* 4
+* 保证通道里传递指针或引用类型的安全性的3种方法
     * 使用互斥
     * 设定规则，发送后不再访问，由接受者释放
     * 所有外部方法都不修改值，内部实现goroutine修改值，修改函数不导出
